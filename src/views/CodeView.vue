@@ -13,6 +13,9 @@
     <div class="controls-wrapper">
       <el-checkbox v-model="useCompare">Use Compare Data</el-checkbox>
     </div>
+        <div class="controls-wrapper">
+      <el-checkbox v-model="useRank">Use Rank</el-checkbox>
+    </div>
     <div class="buttons-wrapper">
       <el-button type="primary" @click="readingFirst">Reading First</el-button>
       <el-button type="primary" @click="readingLast">Reading Last</el-button>
@@ -67,7 +70,9 @@ export default {
       attentionsCompare: {},
       useCompare: false,
       raw_attentions: [],
-      viewcode: ""
+      viewcode: "",
+      rank_raw_attentions: [],
+      useRank: false
     };
   },
   mounted() {
@@ -99,7 +104,7 @@ export default {
 
           return list.map(item => ({
             range: item[3],
-            attention: normalize(item[2], minAttention, maxAttention, false)
+            attention: normalize(item[2], minAttention, maxAttention, true)
           }));
         };
 
@@ -144,58 +149,103 @@ export default {
                       return [...subList, rank];
                   });
               };
+              const safeRankLogic = (list) => list ? rankLogic(list) : [];
               return {
-                  reading_first: rankLogic(res.reading_first),
-                  reading_last: rankLogic(res.reading_last),
-                  reading_all: rankLogic(res.reading_all),
-                  coding_first: rankLogic(res.coding_first),
-                  coding_last: rankLogic(res.coding_last),
-                  coding_all: rankLogic(res.coding_all)
+                  reading_first: safeRankLogic(res.reading_first),
+                  reading_last: safeRankLogic(res.reading_last),
+                  reading_all: safeRankLogic(res.reading_all),
+                  coding_first: safeRankLogic(res.coding_first),
+                  coding_last: safeRankLogic(res.coding_last),
+                  coding_all: safeRankLogic(res.coding_all)
               }
           }
-            console.log(this.raw_attentions)
-          for (let i = 0; i < lengthToCompare; i++) {
-            if (this.raw_attentions.reading_all[i][1] !== data.res.reading_all[i][1]) {
-              break;
-            }
+          console.log(this.rank_raw_attentions)
+          const res = rank(data.res)
+          if(this.useRank) {
+              for (let i = 0; i < lengthToCompare; i++) {
+                  if (this.raw_attentions.reading_all[i][1] !== data.res.reading_all[i][1]) {
+                      break;
+                  }
 
-            if("coding_all" in data.res) {
-                this.attentionsCompare.codingAll.push({
-                range: this.raw_attentions.coding_all[i][3],
-                attention: this.raw_attentions.coding_all[i][2] - data.res.coding_all[i][2]
-              });
-            }
+                  if ("coding_all" in data.res) {
+                      this.attentionsCompare.codingAll.push({
+                          range: this.rank_raw_attentions.coding_all[i][3],
+                          attention: (this.rank_raw_attentions.coding_all[i][4] - res.coding_all[i][4])/200
+                      });
+                  }
 
-            if("coding_first" in data.res) {
-              this.attentionsCompare.codingFirst.push({
-                range: this.raw_attentions.coding_first[i][3],
-                attention: this.raw_attentions.coding_first[i][2] - data.res.coding_first[i][2]
-              });
-            }
+                  if ("coding_first" in data.res) {
+                      this.attentionsCompare.codingFirst.push({
+                          range: this.rank_raw_attentions.coding_first[i][3],
+                          attention: (this.rank_raw_attentions.coding_first[i][4] - res.coding_first[i][4])/200
+                      });
+                  }
 
-            if("coding_first" in data.res) {
-              this.attentionsCompare.codingLast.push({
-                range: this.raw_attentions.coding_last[i][3],
-                attention: this.raw_attentions.coding_last[i][2] - data.res.coding_last[i][2]
-              });
-            }
+                  if ("coding_first" in data.res) {
+                      this.attentionsCompare.codingLast.push({
+                          range: this.rank_raw_attentions.coding_last[i][3],
+                          attention: (this.rank_raw_attentions.coding_last[i][4] - res.coding_last[i][4])/200
+                      });
+                  }
 
-            this.attentionsCompare.readingAll.push({
-              range: this.raw_attentions.reading_all[i][3],
-              attention: this.raw_attentions.reading_all[i][2] - data.res.reading_all[i][2]
-            });
+                  this.attentionsCompare.readingAll.push({
+                      range: this.rank_raw_attentions.reading_all[i][3],
+                      attention: (this.rank_raw_attentions.reading_all[i][4] - res.reading_all[i][4])/200
+                  });
 
-            this.attentionsCompare.readingFirst.push({
-              range: this.raw_attentions.reading_first[i][3],
-              attention: this.raw_attentions.reading_first[i][2] - data.res.reading_first[i][2]
-            });
+                  this.attentionsCompare.readingFirst.push({
+                      range: this.rank_raw_attentions.reading_first[i][3],
+                      attention: (this.rank_raw_attentions.reading_first[i][4] - res.reading_first[i][4])/200
+                  });
 
-            this.attentionsCompare.readingLast.push({
-              range: this.raw_attentions.reading_last[i][3],
-              attention: this.raw_attentions.reading_last[i][2] - data.res.reading_last[i][2]
-            });
+                  this.attentionsCompare.readingLast.push({
+                      range: this.rank_raw_attentions.reading_last[i][3],
+                      attention: (this.rank_raw_attentions.reading_last[i][4] - res.reading_last[i][4])/200
+                  });
+              }
+          }else {
+              for (let i = 0; i < lengthToCompare; i++) {
+                  if (this.raw_attentions.reading_all[i][1] !== data.res.reading_all[i][1]) {
+                      break;
+                  }
+
+                  if ("coding_all" in data.res) {
+                      this.attentionsCompare.codingAll.push({
+                          range: this.raw_attentions.coding_all[i][3],
+                          attention: this.raw_attentions.coding_all[i][2] - data.res.coding_all[i][2]
+                      });
+                  }
+
+                  if ("coding_first" in data.res) {
+                      this.attentionsCompare.codingFirst.push({
+                          range: this.raw_attentions.coding_first[i][3],
+                          attention: this.raw_attentions.coding_first[i][2] - data.res.coding_first[i][2]
+                      });
+                  }
+
+                  if ("coding_first" in data.res) {
+                      this.attentionsCompare.codingLast.push({
+                          range: this.raw_attentions.coding_last[i][3],
+                          attention: this.raw_attentions.coding_last[i][2] - data.res.coding_last[i][2]
+                      });
+                  }
+
+                  this.attentionsCompare.readingAll.push({
+                      range: this.raw_attentions.reading_all[i][3],
+                      attention: this.raw_attentions.reading_all[i][2] - data.res.reading_all[i][2]
+                  });
+
+                  this.attentionsCompare.readingFirst.push({
+                      range: this.raw_attentions.reading_first[i][3],
+                      attention: this.raw_attentions.reading_first[i][2] - data.res.reading_first[i][2]
+                  });
+
+                  this.attentionsCompare.readingLast.push({
+                      range: this.raw_attentions.reading_last[i][3],
+                      attention: this.raw_attentions.reading_last[i][2] - data.res.reading_last[i][2]
+                  });
+              }
           }
-          console.log(this.attentionsCompare);
         })
         .catch(error => {
           console.error('Error fetching JSON data:', error);
@@ -219,7 +269,7 @@ export default {
 
           return list.map(item => ({
             range: item[3],
-            attention: normalize(item[2], minAttention, maxAttention, false)
+            attention: normalize(item[2], minAttention, maxAttention, true)
           }));
         };
 
@@ -249,13 +299,14 @@ export default {
                   return [...subList, rank];
               });
           };
+          const safeRankLogic = (list) => list ? rankLogic(list) : [];
           return {
-              reading_first: rankLogic(res.reading_first),
-              reading_last: rankLogic(res.reading_last),
-              reading_all: rankLogic(res.reading_all),
-              coding_first: rankLogic(res.coding_first),
-              coding_last: rankLogic(res.coding_last),
-              coding_all: rankLogic(res.coding_all)
+              reading_first: safeRankLogic(res.reading_first),
+              reading_last: safeRankLogic(res.reading_last),
+              reading_all: safeRankLogic(res.reading_all),
+              coding_first: safeRankLogic(res.coding_first),
+              coding_last: safeRankLogic(res.coding_last),
+              coding_all: safeRankLogic(res.coding_all)
           }
       }
       fetch(`/api/data/${this.selectedFile}`)
@@ -264,6 +315,7 @@ export default {
           this.code = data.prompt;
           this.attentions = parseData(data.res);
           this.raw_attentions = data.res;
+          this.rank_raw_attentions = rank(data.res);
           this.fix = data.fix;
           this.oracle = data.data.solution;
           this.buggy = data.data.buggy_code;
